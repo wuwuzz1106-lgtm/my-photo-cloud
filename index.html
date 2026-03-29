@@ -1,590 +1,320 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>專屬雲端相簿 - 終極防護與物理手感版</title>
-<style>
-  /* --- 基礎設定 & 全局防護 (最核心的 CSS 保護) --- */
-  body { 
-    margin: 0; padding: 0; background-color: #f3f5f6; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; overflow-x: hidden; color: #333; line-height: 1.5; -webkit-tap-highlight-color: transparent; 
-    /* 防護指令 1: 全局文字與圖片不可選取 */
-    -webkit-user-select: none; user-select: none; 
-    /* 防護指令 2: 全局圖片不可被選取 */
-    -webkit-touch-callout: none;
-  }
-  .view { display: none; }
-  .view.active { display: block; }
-  button { background: none; border: none; cursor: pointer; color: inherit; font-family: inherit; font-size: inherit; padding: 0; outline: none; }
-  a { text-decoration: none; color: #0063dc; }
-  /* 防護指令 3: 圖片全局禁用拖曳效果 */
-  img { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的旗艦雲端相簿</title>
+    <style>
+        /* 基礎視覺 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f5f5f7; color: #1d1d1f; padding-bottom: 80px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea; }
+        .header h1 { margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .controls { display: flex; gap: 10px; }
+        button { padding: 8px 16px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-primary { background: #007aff; color: white; } .btn-primary:hover { background: #005bb5; }
+        .btn-secondary { background: #e5e5ea; color: #1d1d1f; } .btn-secondary:hover { background: #d1d1d6; }
+        .btn-danger { background: #ff3b30; color: white; }
+        
+        /* 網格與卡片 */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; padding: 20px; }
+        .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; position: relative; transition: transform 0.2s; aspect-ratio: 1; }
+        .card:hover { transform: scale(1.02); }
+        .card img { width: 100%; height: 100%; object-fit: cover; }
+        .card-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; padding: 8px; margin: 0; font-size: 14px; text-align: center; }
 
-  /* =========================================
-     電腦版視覺細節 (維持專業與大氣網格)
-     ========================================= */
-  #album-view { padding: 40px 60px; }
-  #album-view h2 { font-size: 28px; margin-bottom: 30px; color: #222; display: flex; justify-content: space-between; align-items: center; }
-  .album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
-  .album-card { position: relative; overflow: hidden; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; background-color: #fff; aspect-ratio: 1 / 1; }
-  .album-cover-wrapper { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #eee; }
-  .album-cover-wrapper img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
-  .album-card:hover .album-cover-wrapper img { transform: scale(1.05); }
-  .album-info-container { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%); color: white; padding: 40px 20px 16px 20px; pointer-events: none; display: flex; flex-direction: column; gap: 6px; }
-  .album-name { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; line-height: 1.3; }
-  .album-meta-date { font-size: 13px; color: #ddd; display: none; } 
-  .album-count { font-size: 13px; font-weight: bold; color: #ddd; }
-  .add-album-btn { border: 2px dashed #ccc; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; transition: 0.2s; }
-  .add-album-btn:hover { border-color: #0063dc; color: #0063dc; background: rgba(0, 99, 220, 0.02); }
+        /* 多選模式 UI */
+        .checkbox-container { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; background: rgba(255,255,255,0.8); border: 2px solid #ccc; border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 10; transition: 0.2s; }
+        .select-mode .checkbox-container { display: flex; }
+        .card.selected .checkbox-container { background: #007aff; border-color: #007aff; }
+        .card.selected .checkbox-container::after { content: '✓'; color: white; font-weight: bold; }
+        .card.selected img { opacity: 0.7; transform: scale(0.95); transition: 0.2s; border-radius: 8px; }
 
-  #gallery-view { padding: 40px 60px; }
-  .gallery-top-nav { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 50px 0; font-size: 15px; color: #555; }
-  .back-btn { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 16px; }
-  .back-btn:hover { color: #000; }
-  .nav-text-desktop { display: inline; }
-  .nav-actions span { margin-left: 24px; cursor: pointer; font-weight: 500; }
-  .nav-actions span:hover { color: #000; }
-  .nav-icon-mobile { display: none; }
-  
-  .gallery-header { text-align: center; margin-bottom: 60px; position: relative; }
-  .gallery-header h1 { margin: 0 0 12px 0; font-size: 32px; font-weight: 600; color: #111; letter-spacing: 1px; }
-  .album-owner { font-size: 16px; color: #555; margin-bottom: 12px; font-weight: 500; }
-  .album-meta { font-size: 14px; color: #888; }
-  .gallery-header-bg { display: none; }
+        /* 浮動操作列 */
+        .action-bar { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #1d1d1f; color: white; padding: 12px 24px; border-radius: 30px; display: flex; gap: 20px; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); transition: bottom 0.3s ease; z-index: 1000; }
+        .action-bar.show { bottom: 30px; }
+        
+        /* 改名 UI */
+        .rename-container { display: none; align-items: center; gap: 10px; }
+        .rename-container input { padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 20px; font-weight: bold; width: 200px; }
 
-  .gallery-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; font-size: 14px; color: #777; border-bottom: 1px solid #e0e0e0; }
-  .toolbar-left span, .toolbar-right span { cursor: pointer; margin-right: 20px; font-weight: 500; }
-  .toolbar-right { display: flex; gap: 18px; font-size: 18px; color: #aaa; align-items: center;}
-  .toolbar-left span:hover, .toolbar-right span:hover { color: #333; }
-  .toolbar-icon-desktop { display: block; }
-  .select-btn-mobile { display: none; }
-  
-  .photo-gallery { column-count: 4; column-gap: 24px; }
-  .photo-card { height: auto; break-inside: avoid; margin-bottom: 24px; display: flex; flex-direction: column; background-color: #fff; border: 1px solid #e0e0e0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
-  .photo-img-wrapper { position: relative; overflow: hidden; cursor: zoom-in; }
-  .photo-img-wrapper img { width: 100%; height: auto; display: block; transition: opacity 0.2s; }
-  .photo-img-wrapper:hover img { opacity: 0.85; }
-  
-  .photo-filename-hover { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); color: white; padding: 20px 15px 12px; font-size: 14px; letter-spacing: 0.5px; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; display: flex; flex-direction: column; gap: 10px; }
-  .photo-card:hover .photo-filename-hover { opacity: 1; pointer-events: auto; }
-  .photo-card-actions-overlay { display: flex; gap: 16px; font-size: 18px; color: rgba(255,255,255,0.7); }
-  .photo-card-actions-overlay span { cursor: pointer; transition: color 0.2s;}
-  .photo-card-actions-overlay span:hover { color: white; }
-  
-  /* 電腦版白底資訊列 */
-  .photo-card-info { height: 55px; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 13px; color: #444; font-weight: 500; }
-  .photo-card-actions { display: flex; gap: 16px; font-size: 18px; color: #aaa; }
-  .photo-card-actions span { cursor: pointer; transition: color 0.2s;}
-  .photo-card-actions span:hover { color: #ff4444; }
+        #fileInput { display: none; }
 
-  /* =========================================
-     照片詳情頁 (核心防護與物理手感融合)
-     ========================================= */
-  #photo-stage { background-color: #222; height: 80vh; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; outline: none; }
-  #photo-stage.immersive-zoom { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; background-color: #000; }
-  
-  .stage-ui { transition: opacity 0.2s ease, visibility 0.2s; }
-  #photo-stage.immersive-zoom .stage-ui { opacity: 0; visibility: hidden; pointer-events: none; }
-  
-  #slider-track { position: absolute; top: 0; left: 0; width: 100%; height: 100%; will-change: transform; display: flex; align-items: center; justify-content: center; }
-  .slide-container { position: absolute; top: 0; width: 100vw; height: 100%; display: flex; align-items: center; justify-content: center; }
-  #slide-prev { left: -100vw; }
-  #slide-main { left: 0; z-index: 2; }
-  #slide-next { left: 100vw; }
-
-  /* 防護指令 4: 大圖專業保護 (透明護蓋技術) */
-  .photo-overlay { 
-    position: absolute; top: 0; left: 0; width: 100vw; height: 100%; background: rgba(0,0,0,0); z-index: 10; 
-    /* 電腦版放大手感指令，但保護大圖摸不到路徑 */
-    cursor: zoom-in; 
-  }
-  #photo-stage.immersive-zoom .photo-overlay { cursor: default; }
-
-  .slider-img { width: 100%; height: 100%; object-fit: contain; will-change: transform; transform-origin: center center; }
-
-  .stage-top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 20px 30px; color: rgba(255,255,255,0.7); font-size: 15px; z-index: 20; display: flex; justify-content: space-between; }
-  .stage-back-btn:hover { color: white; }
-  .fullscreen-btn { font-size: 20px; cursor: pointer; }
-  .fullscreen-btn:hover { color: white; }
-  .delete-btn { font-size: 20px; cursor: pointer; transition: 0.2s; }
-  .delete-btn:hover { color: #ff4444; }
-
-  .stage-nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); font-size: 60px; color: rgba(255,255,255,0.25); z-index: 20; cursor: pointer; padding: 20px; }
-  .stage-nav-arrow:hover { color: rgba(255,255,255,0.9); }
-  .arrow-prev { left: 20px; }
-  .arrow-next { right: 20px; }
-
-  #photo-info-panel { background-color: #f3f5f6; padding: 50px 80px; color: #444; font-size: 15px; border-top: 1px solid #e0e0e0; display: flex; gap: 60px; line-height: 1.6; }
-  .info-left-panel { flex: 2; display: flex; flex-direction: column; gap: 30px;}
-  .info-right-panel { flex: 1; border-left: 1px solid #e0e0e0; padding-left: 40px; display: flex; flex-direction: column; gap: 30px; }
-  .exif-block { display: flex; align-items: center; gap: 10px; font-weight: 600; color: #222; font-size: 16px; }
-  .album-context-item { display: flex; align-items: center; gap: 18px; background-color: white; border: 1px solid #e0e0e0; padding: 12px 15px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
-  .album-context-cover { width: 48px; height: 48px; border-radius: 4px; overflow: hidden; }
-  .album-context-cover img { width: 100%; height: 100%; object-fit: cover; }
-  .album-context-title { font-size: 14px; font-weight: bold; color: #222;}
-  .album-context-count { font-size: 12px; color: #888;}
-
-  /* 彈窗 & 上傳 (效能優化) */
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); z-index: 300000; backdrop-filter: blur(8px); align-items: center; justify-content: center; }
-  .modal-overlay.active { display: flex; }
-  .modal-content { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
-  .modal-content h3 { margin-top: 0; color: #222; margin-bottom: 20px; }
-  .modal-content input, .modal-content select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; }
-  .btn-primary { background: #0063dc; color: white; padding: 10px 30px; border-radius: 6px; font-weight: bold; }
-  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-  .btn-ghost { color: #666; padding: 10px; margin-right: 10px; }
-  
-  #upload-modal .upload-container { border: 2px dashed #0063dc; padding: 40px 20px; border-radius: 15px; cursor: pointer; transition: background 0.2s; }
-  #upload-modal .upload-container:hover { background: #f8fbff; }
-  #preview-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin-top: 15px; max-height: 200px; overflow-y: auto; }
-  .preview-item { aspect-ratio: 1/1; border-radius: 4px; overflow: hidden; border: 1px solid #eee; position: relative; }
-  .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-  #upload-count-text { display: none; color: #0063dc; font-weight: bold; margin-bottom: 10px; font-size: 15px; }
-
-  #upload-progress-wrapper { display: none; width: 100%; margin-top: 15px; }
-  #upload-progress-container { width: 100%; background: #eee; border-radius: 6px; overflow: hidden; height: 12px; }
-  #upload-progress-bar { width: 0%; height: 100%; background: #0063dc; transition: width 0.1s ease; }
-  #upload-progress-text { text-align: center; font-size: 13px; color: #666; margin-top: 5px; font-weight: bold; }
-
-  #bottom-sheet-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 100000; opacity: 0; transition: opacity 0.3s; }
-  #bottom-sheet { display: none; position: fixed; bottom: 0; left: 0; width: 100vw; background: #fff; border-radius: 15px 15px 0 0; z-index: 100001; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.1, 0.8, 0.2, 1); padding-bottom: env(safe-area-inset-bottom); }
-  #bottom-sheet.active { transform: translateY(0); }
-  #bottom-sheet-overlay.active { display: block; opacity: 1; }
-  .sheet-handle { width: 40px; height: 4px; background: #ddd; border-radius: 2px; margin: 12px auto 20px auto; }
-  .sheet-item { padding: 18px 24px; font-size: 16px; color: #111; font-weight: 500; cursor: pointer; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
-  .sheet-item:last-child { border-bottom: none; }
-  .sheet-item:active { background-color: #f5f5f5; }
-
-  /* =========================================
-     手機版專屬視覺
-     ========================================= */
-  @media (max-width: 600px) {
-    #album-view { padding: 10px 0; }
-    #album-view h2 { padding: 0 15px; font-size: 22px; margin-bottom: 15px; }
-    .album-grid { display: flex; flex-direction: column; gap: 2px; }
-    .album-card { aspect-ratio: auto; display: flex; flex-direction: row; height: 110px; border-radius: 0; box-shadow: none; border-bottom: 1px solid #f0f0f0; }
-    .album-cover-wrapper { width: 110px; height: 110px; flex-shrink: 0; }
-    .album-info-container { position: static; background: #fff; padding: 15px 15px; flex: 1; justify-content: flex-start; gap: 4px; }
-    .album-name { color: #111; font-size: 15px; margin-bottom: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .album-meta-date { display: block; color: #888; font-size: 12px; }
-    .album-count { color: #888; font-weight: normal; font-size: 12px; }
-    .add-album-btn { height: 60px; flex-direction: row; gap: 10px; border: none; border-bottom: 1px solid #f0f0f0; }
-
-    #gallery-view { padding: 0; }
-    .gallery-header { position: relative; overflow: hidden; text-align: center; margin-bottom: 0; color: white; padding: 90px 20px 30px 20px; background: none; z-index: 1; }
-    .gallery-header-bg { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(25px) brightness(0.6); z-index: -1; transform: scale(1.2); }
-    .gallery-header h1 { color: white; font-size: 22px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-    .album-owner { display: none; }
-    .album-meta { color: white; font-size: 14px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-
-    .gallery-top-nav { position: absolute; top: 0; left: 0; width: 100%; justify-content: space-between; align-items: center; padding: 15px 20px; font-size: 14px; color: white; background: none; z-index: 10; border-bottom: none; }
-    .back-btn { font-size: 24px; color: white; font-weight: normal; }
-    .nav-text-desktop { display: none; }
-    .nav-actions { display: flex; gap: 15px; }
-    .nav-icon-mobile { display: block; font-size: 22px; color: white; }
-
-    .gallery-toolbar { padding: 12px 20px; font-size: 13px; color: #333; border-bottom: 1px solid #f0f0f0; margin-bottom: 2px; background: white; }
-    .toolbar-left .nav-actions { display: none; } 
-    .toolbar-icon-mobile { display: block; font-size: 22px; color: #333; }
-    .toolbar-right { gap: 15px; font-size: 16px; color: #aaa; align-items: center; width: 100%; justify-content: flex-end;}
-    .toolbar-icon-desktop { display: none; }
-    .select-btn-mobile { display: block; padding: 6px 14px; border: 1px solid #ccc; border-radius: 4px; background-color: white; color: #111; font-size: 13px; font-weight: 600; cursor: pointer; }
-    
-    .photo-gallery { column-count: 2; column-gap: 2px; padding: 0; }
-    .photo-card { margin-bottom: 2px; border-radius: 0; border: none; box-shadow: none;}
-    .photo-filename-hover, .photo-card-info { display: none; } 
-
-    #photo-stage { height: 100vh; background-color: black; }
-    .stage-ui { display: none !important; }
-    #photo-info-panel { display: none; }
-    
-    .mobile-lightbox-ui { display: flex; justify-content: space-between; align-items: flex-end; position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; z-index: 100; pointer-events: none; background: linear-gradient(transparent, rgba(0,0,0,0.6)); transition: opacity 0.2s ease; }
-    .mobile-filename { color: white; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; pointer-events: auto; }
-    .mobile-menu-btn { color: white; font-size: 24px; pointer-events: auto; cursor: pointer; padding: 10px 0 10px 20px; }
-  }
-</style>
-</head>
-<body onkeydown="handleKeyPress(event)" oncontextmenu="return false;" ondragstart="return false;">
-
-  <div id="toast-container"></div>
-
-  <div id="album-view" class="view active">
-    <h2>我的相簿 <button onclick="openNewAlbumModal()" style="font-size: 16px; color:#0063dc; margin-left: auto;">＋建立相簿</button></h2>
-    <div id="album-grid-container" class="album-grid"></div>
-  </div>
-
-  <div id="gallery-view" class="view">
-    <div id="gallery-header-container" class="gallery-header">
-      <img id="gallery-header-bg-img" class="gallery-header-bg" src="" alt="背景">
-      <div class="gallery-top-nav">
-        <button class="back-btn" onclick="navigateTo('')">← <span class="nav-text-desktop">返回</span></button>
-        <div class="nav-actions"> 
-          <span class="nav-text-desktop delete-btn" onclick="deleteCurrentAlbum()">🗑️ 刪除相簿</span> 
-          <span class="nav-text-desktop" onclick="openUploadModal()">＋ 新增相片</span> 
-          <span class="nav-text-desktop" onclick="copyLinkToClipboard()">➦ 分享</span> 
-          <span class="nav-icon-mobile delete-btn" onclick="deleteCurrentAlbum()">🗑️</span>
-          <span class="nav-icon-mobile" onclick="copyLinkToClipboard()">➦</span>
-          <span class="nav-icon-mobile" onclick="openUploadModal()">＋</span>
-        </div>
-      </div>
-      <h1 id="current-album-title"></h1>
-      <div class="album-owner"><a href="#">你!</a> 所有</div>
-      <div class="album-meta" id="current-album-meta"></div>
-    </div>
-    
-    <div class="gallery-toolbar stage-ui">
-      <div class="toolbar-left">
-        <span class="toolbar-icon-mobile" onclick="showToast('篩選與排序')">≡</span> 
-        <div class="nav-actions"><span class="nav-text-desktop" onclick="showToast('篩選功能開發中')">≡ 篩選</span></div>
-      </div>
-      <div class="toolbar-right"><button class="select-btn-mobile">選取</button></div>
-    </div>
-    <div id="photo-gallery-container" class="photo-gallery"></div>
-  </div>
-
-  <div id="photo-detail-view" class="view">
-    <div id="photo-stage" tabindex="-1">
-      <div class="photo-overlay" id="main-photo-overlay"></div>
-      
-      <div id="slider-track">
-        <div class="slide-container" id="slide-prev"><img id="img-prev" class="slider-img" src="" alt="上一張"></div>
-        <div class="slide-container" id="slide-main"><img id="stage-main-img" class="slider-img" src="" alt="大圖"></div>
-        <div class="slide-container" id="slide-next"><img id="img-next" class="slider-img" src="" alt="下一張"></div>
-      </div>
-
-      <div class="stage-top-bar stage-ui">
-        <button class="stage-back-btn" id="stage-back-btn">← 返回相簿</button>
-        <div style="display:flex; gap: 20px;">
-          <span class="delete-btn" title="刪除相片" onclick="deleteCurrentPhoto()">🗑️</span>
-          <span class="fullscreen-btn" title="全螢幕" onclick="toggleNativeFullscreen()">◱</span>
-        </div>
-      </div>
-      <div class="stage-nav-arrow arrow-prev stage-ui" id="nav-prev-btn">&#10094;</div>
-      <div class="stage-nav-arrow arrow-next stage-ui" id="nav-next-btn">&#10095;</div>
-
-      <div class="mobile-lightbox-ui" id="mobile-lightbox-ui">
-        <div class="mobile-filename" id="mobile-photo-filename">檔名</div>
-        <div class="mobile-menu-btn" onclick="event.stopPropagation(); openBottomSheet()">⋮</div>
-      </div>
-    </div>
-
-    <div id="photo-info-panel">
-      <div class="info-left-panel">
-        <div class="info-block">
-          <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
-            <img src="https://picsum.photos/id/1015/50/50" style="border-radius:50%">
-            <div><strong style="font-size:18px;">WU WU</strong><br><span id="info-filename" style="color:#888;"></span></div>
-          </div>
-          <p style="color:#888; font-style:italic;">這張相片沒有描述</p>
-        </div>
-      </div>
-      <div class="info-right-panel">
-        <div class="info-block">
-          <div class="info-block-header info-block-subtext" id="info-date"></div>
-          <div class="copyright-info"> <span>©</span> <span>版權所有 不得轉載</span> <span title="版權資訊" style="cursor:help;">ⓘ</span> </div>
-        </div>
-        <div class="info-block">
-          <div class="info-block-header"> <span class="info-block-icon">📷</span> <span id="info-exif">讀取中...</span> </div>
-        </div>
-        <div class="info-block">
-          <div class="album-context-item">
-            <div class="album-context-cover"><img id="info-album-thumb" src="" alt="相簿封面"></div>
-            <div class="album-context-info">
-              <div class="album-context-title" id="info-album-title">相簿標題</div>
-              <div class="album-context-count" id="info-album-count">17 張相片</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="new-album-modal" class="modal-overlay">
-    <div class="modal-content">
-      <h3 style="margin-top:0">建立新相簿</h3>
-      <input type="text" id="new-album-input" placeholder="請輸入相簿名稱...">
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn-ghost" onclick="closeNewAlbumModal()">取消</button>
-        <button class="btn-primary" onclick="createNewAlbum()">建立</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="upload-modal" class="modal-overlay">
-    <div class="modal-content">
-      <h3 style="margin-top:0">上傳相片</h3>
-      <div style="text-align: left; font-weight: bold; margin-bottom: 5px;">上傳至：</div>
-      <select id="target-album-select"></select>
-      <div id="upload-count-text"></div>
-      <div class="upload-container" id="drop-zone" onclick="document.getElementById('file-input').click()">
-        <div style="font-size: 40px;">☁️</div>
-        <p>點擊或拖放相片至此，支援批次選取</p>
-        <input type="file" id="file-input" multiple accept="image/*" style="display:none">
-      </div>
-      <div id="preview-list"></div>
-      <div id="upload-progress-wrapper">
-        <div id="upload-progress-container"><div id="upload-progress-bar"></div></div>
-        <div id="upload-progress-text">0%</div>
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
-        <button class="btn-ghost" onclick="closeUploadModal()">取消</button>
-        <button id="start-upload-btn" class="btn-primary" onclick="startRealUpload()" style="display:none">開始上傳</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="bottom-sheet-overlay" onclick="closeBottomSheet()"></div>
-  <div id="bottom-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-item" onclick="deleteCurrentPhoto()" style="color:#ff4444; font-weight: bold;">🗑️ 刪除相片</div>
-    <div class="sheet-item" onclick="handleDownload()">下載相片</div>
-    <div class="sheet-item" onclick="showToast('編輯模式尚未開放')">編輯相片</div>
-    <div class="sheet-item" onclick="closeBottomSheet()">取消</div>
-  </div>
-
-<script>
-    // ==========================================
-    // 全端資料庫初始化 (與 server.js 連線)
-    // ==========================================
-    let albumsData = {}; 
-    let currentAlbumTitle = '', currentAlbumPhotos = [], currentPhotoIndex = 0;
-    let selectedFiles = [];
-
-    async function fetchDatabase() {
-        try {
-            const response = await fetch('/api/data');
-            albumsData = await response.json();
-            handleHashChange(); 
-        } catch (error) {
-            console.error(error);
-            showToast('❌ 無法連線至伺服器');
+        /* 全螢幕燈箱與下載保護 */
+        .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; }
+        .lightbox img { 
+            max-width: 90%; 
+            max-height: 80%; 
+            border-radius: 8px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            /* 🛑 終極下載保護 */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none;
         }
-    }
+        .lightbox-close { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; font-weight: bold; }
+        
+        #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 3000; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
 
-    // --- Router ---
-    function navigateTo(album, photoIndex) {
-      if (album && photoIndex !== undefined) window.location.hash = `album=${encodeURIComponent(album)}&photo=${photoIndex}`;
-      else if (album) window.location.hash = `album=${encodeURIComponent(album)}`;
-      else window.location.hash = '';
-    }
+    <div id="loadingOverlay">系統處理中，請稍候...⏳</div>
 
-    window.addEventListener('hashchange', handleHashChange);
-    function handleHashChange() {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      const album = params.get('album');
-      const photo = params.get('photo');
-      if (album && photo !== null) { executeOpenPhotoDetail(album, parseInt(photo, 10)); } 
-      else if (album) { executeOpenAlbum(album); } 
-      else { executeGoHome(); }
-    }
+    <div class="header">
+        <h1>
+            <span id="headerTitle">我的相簿</span>
+            <button id="editNameBtn" class="btn-secondary" style="display: none; padding: 4px 8px;">✏️</button>
+            <div id="renameContainer" class="rename-container">
+                <input type="text" id="renameInput">
+                <button id="saveRenameBtn" class="btn-primary">儲存</button>
+                <button id="cancelRenameBtn" class="btn-secondary">取消</button>
+            </div>
+        </h1>
+        <div class="controls">
+            <button id="backBtn" class="btn-secondary" style="display:none;">返回</button>
+            <input type="file" id="fileInput" multiple accept="image/*">
+            <button id="uploadBtn" class="btn-primary" style="display:none;">上傳照片</button>
+            <button id="newAlbumBtn" class="btn-primary">新增相簿</button>
+            <button id="toggleSelectBtn" class="btn-secondary">選取</button>
+        </div>
+    </div>
 
-    function setActiveView(viewId) {
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.getElementById(viewId).classList.add('active');
-    }
+    <div id="contentGrid" class="grid-container"></div>
 
-    // --- 視圖渲染 ---
-    function executeGoHome() {
-      setActiveView('album-view');
-      const container = document.getElementById('album-grid-container'); container.innerHTML = '';
-      
-      const addCard = document.createElement('div');
-      addCard.className = 'album-card add-album-btn'; addCard.onclick = openNewAlbumModal;
-      addCard.innerHTML = `<span style="font-size:40px">＋</span><span>建立新相簿</span>`;
-      container.appendChild(addCard);
+    <div id="actionBar" class="action-bar">
+        <span id="selectCount">已選取 0 項</span>
+        <button id="batchDeleteBtn" class="btn-danger">刪除選取項目</button>
+    </div>
 
-      for (const [title, photos] of Object.entries(albumsData)) {
-        const card = document.createElement('div'); card.className = 'album-card'; card.onclick = () => navigateTo(title);
-        const cover = photos.length > 0 ? photos[0].thumb : '';
-        const date = photos.length > 0 ? photos[0].uploadDate : '空相簿';
-        card.innerHTML = `<div class="album-cover-wrapper">${cover ? `<img src="${cover}" alt="${title}">` : '<span>空</span>'}</div><div class="album-info-container"><div class="album-name">${title}</div><div class="album-meta-date">${date}</div><div class="album-count">${photos.length} 張相片</div></div>`;
-        container.appendChild(card);
-      }
-    }
+    <div id="lightbox" class="lightbox">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <img id="lightboxImg" src="" alt="大圖預覽">
+    </div>
 
-    function executeOpenAlbum(title) {
-      if (!albumsData[title]) return navigateTo(''); 
-      setActiveView('gallery-view');
-      currentAlbumTitle = title; currentAlbumPhotos = albumsData[title];
-      
-      const bgImg = currentAlbumPhotos[0] ? currentAlbumPhotos[0].full : '';
-      document.getElementById('gallery-header-bg-img').src = bgImg;
-      document.getElementById('current-album-title').innerText = title;
-      document.getElementById('current-album-meta').innerText = `${currentAlbumPhotos.length} 張相片`;
-      
-      const container = document.getElementById('photo-gallery-container'); container.innerHTML = '';
-      currentAlbumPhotos.forEach((photo, index) => {
-        const item = document.createElement('div'); item.className = 'photo-card';
-        const imgWrapper = document.createElement('div'); imgWrapper.className = 'photo-img-wrapper'; imgWrapper.onclick = () => navigateTo(title, index); 
-        // 刪除按鈕功能也在此完整恢復
-        imgWrapper.innerHTML = `<img src="${photo.thumb}" alt="${photo.filename}"><div class="photo-filename-hover"><div>${photo.filename}</div><div class="photo-card-actions-overlay"> <span title="留言">💬</span> <span title="刪除相片" onclick="event.stopPropagation(); deleteSpecificPhoto('${photo.full}')">🗑️</span> </div></div>`;
-        const cardInfo = document.createElement('div'); cardInfo.className = 'photo-card-info';
-        cardInfo.innerHTML = `<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:60%">${photo.filename}</div><div class="photo-card-actions"> <span title="留言">💬</span> <span title="刪除相片" onclick="event.stopPropagation(); deleteSpecificPhoto('${photo.full}')">🗑️</span></div>`;
-        item.appendChild(imgWrapper); item.appendChild(cardInfo); container.appendChild(item);
-      });
-      window.scrollTo(0, 0);
-    }
+    <script>
+        // 🛑 禁止全站按右鍵另存圖片
+        document.addEventListener('contextmenu', event => event.preventDefault());
 
-    function executeOpenPhotoDetail(title, index) {
-      if (!albumsData[title] || !albumsData[title][index]) return navigateTo(title);
-      currentAlbumTitle = title; currentAlbumPhotos = albumsData[title]; currentPhotoIndex = index;
-      setActiveView('photo-detail-view');
-      
-      document.getElementById('stage-back-btn').onclick = () => navigateTo(title);
-      document.getElementById('nav-prev-btn').onclick = () => triggerSlideChange(-1);
-      document.getElementById('nav-next-btn').onclick = () => triggerSlideChange(1);
-      
-      const sliderTrack = document.getElementById('slider-track'); sliderTrack.style.transition = 'none'; sliderTrack.style.transform = 'translate(0,0) scale(1)';
-      
-      const len = currentAlbumPhotos.length;
-      const prevIdx = (currentPhotoIndex - 1 + len) % len;
-      const nextIdx = (currentPhotoIndex + 1) % len;
-      
-      document.getElementById('img-prev').src = currentAlbumPhotos[prevIdx].full;
-      document.getElementById('stage-main-img').src = currentAlbumPhotos[currentPhotoIndex].full;
-      document.getElementById('img-next').src = currentAlbumPhotos[nextIdx].full;
-      
-      const photo = currentAlbumPhotos[currentPhotoIndex];
-      document.getElementById('info-filename').innerText = photo.filename;
-      document.getElementById('mobile-photo-filename').innerText = photo.filename;
-      document.getElementById('info-date').innerText = `上傳於 ${photo.uploadDate}`;
-      document.getElementById('info-exif').innerText = photo.exif || '本機上傳';
-      document.getElementById('info-album-thumb').src = currentAlbumPhotos[0].thumb;
-      document.getElementById('info-album-title').innerText = title;
-      document.getElementById('info-album-count').innerText = `${len} 張相片`;
-      
-      currentScale = 1; isDesktopZoomed = false; isMobileUIHidden = false;
-      document.getElementById('mobile-lightbox-ui').style.opacity = '1';
-      document.querySelector('.stage-top-bar').style.opacity = '1';
-      document.getElementById('stage-main-img').classList.remove('zoomed');
-      document.getElementById('photo-stage').classList.remove('immersive-zoom');
-      document.getElementById('photo-stage').style.backgroundColor = '';
-      
-      window.scrollTo(0, 0);
-    }
+        let dbData = {};
+        let currentAlbum = null; 
+        let isSelectMode = false;
+        let selectedItems = new Set(); 
 
-    function triggerSlideChange(direction) {
-      const sliderTrack = document.getElementById('slider-track');
-      sliderTrack.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-      sliderTrack.style.transform = `translateX(${direction === 1 ? '-100vw' : '100vw'})`;
-      setTimeout(() => { const nextIndex = (currentPhotoIndex + direction + currentAlbumPhotos.length) % currentAlbumPhotos.length; navigateTo(currentAlbumTitle, nextIndex); }, 300);
-    }
+        const contentGrid = document.getElementById('contentGrid');
+        const headerTitle = document.getElementById('headerTitle');
+        const toggleSelectBtn = document.getElementById('toggleSelectBtn');
+        const actionBar = document.getElementById('actionBar');
+        const selectCount = document.getElementById('selectCount');
+        const backBtn = document.getElementById('backBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const editNameBtn = document.getElementById('editNameBtn');
+        const renameContainer = document.getElementById('renameContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
 
-    // --- 完美還原的物理觸控與放大引擎 (100% 來自你的代碼，但防護護蓋技術融合) ---
-    const photoStage = document.getElementById('photo-stage');
-    const mainPhotoOverlay = document.getElementById('main-photo-overlay');
-    const sliderTrack = document.getElementById('slider-track');
-    const mainImg = document.getElementById('stage-main-img');
+        // ================= 1. 取得資料 =================
+        async function loadData() {
+            showLoading(true);
+            try {
+                const res = await fetch('/api/data');
+                dbData = await res.json();
+                if (currentAlbum) renderPhotos(currentAlbum);
+                else renderAlbums();
+            } catch (err) { alert('讀取資料失敗'); }
+            showLoading(false);
+        }
 
-    let touchStartX = 0; let touchStartY = 0; let trackX = 0; let trackY = 0; let panX = 0; let panY = 0; let panStartX = 0; let panStartY = 0;
-    let isSwipingX = false; let isSwipingY = false; let isPinching = false; let isPanning = false; let initialDistance = 0; let currentScale = 1; let baseScale = 1; let isDesktopZoomed = false; let isMobileUIHidden = false;
+        // ================= 2. 渲染邏輯 =================
+        function renderAlbums() {
+            currentAlbum = null;
+            headerTitle.textContent = "我的相簿";
+            headerTitle.style.display = "block";
+            editNameBtn.style.display = "none";
+            backBtn.style.display = "none";
+            uploadBtn.style.display = "none";
+            document.getElementById('newAlbumBtn').style.display = "block";
+            exitSelectMode();
+            contentGrid.innerHTML = '';
 
-    function getDistance(touches) { const dx = touches[0].clientX - touches[1].clientX; const dy = touches[0].clientY - touches[1].clientY; return Math.sqrt(dx * dx + dy * dy); }
+            Object.keys(dbData).forEach(albumName => {
+                const photos = dbData[albumName];
+                const coverImg = photos.length > 0 ? photos[0].thumb : 'https://via.placeholder.com/400?text=Empty';
+                const card = createCard(albumName, albumName, coverImg);
+                card.onclick = (e) => handleCardClick(e, card, albumName, () => renderPhotos(albumName));
+                contentGrid.appendChild(card);
+            });
+        }
 
-    // 將所有事件都綁定在 mainPhotoOverlay 上，實現防護與手感融合
-    mainPhotoOverlay.addEventListener('touchstart', (e) => {
-      sliderTrack.style.transition = 'none'; mainImg.style.transition = 'none';
-      if (e.touches.length === 2) { isPinching = true; isSwipingX = false; isSwipingY = false; isPanning = false; initialDistance = getDistance(e.touches); baseScale = currentScale; } 
-      else if (e.touches.length === 1) { if (currentScale <= 1.05) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; isSwipingX = false; isSwipingY = false; isPanning = false; } else { isPanning = true; panStartX = e.touches[0].clientX - panX; panStartY = e.touches[0].clientY - panY; } }
-    }, { passive: false });
+        function renderPhotos(albumName) {
+            currentAlbum = albumName;
+            headerTitle.textContent = albumName;
+            headerTitle.style.display = "block";
+            editNameBtn.style.display = "block"; 
+            backBtn.style.display = "block";
+            uploadBtn.style.display = "block";
+            document.getElementById('newAlbumBtn').style.display = "none";
+            exitSelectMode();
+            contentGrid.innerHTML = '';
 
-    mainPhotoOverlay.addEventListener('touchmove', (e) => {
-      if (isPinching && e.touches.length === 2) { e.preventDefault(); const currentDistance = getDistance(e.touches); currentScale = baseScale * (currentDistance / initialDistance); if (currentScale > 4) currentScale = 4; if (currentScale < 0.8) currentScale = 0.8; mainImg.style.transform = `translate(${panX}px, ${panY}px) scale(${currentScale})`; } 
-      else if (isPanning && e.touches.length === 1) { e.preventDefault(); panX = e.touches[0].clientX - panStartX; panY = e.touches[0].clientY - panStartY; mainImg.style.transform = `translate(${panX}px, ${panY}px) scale(${currentScale})`; } 
-      else if (e.touches.length === 1 && currentScale <= 1.05) { const dx = e.touches[0].clientX - touchStartX; const dy = e.touches[0].clientY - touchStartY; if (!isSwipingX && !isSwipingY && !isPinching) { if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) isSwipingX = true; else if (dy > 8) isSwipingY = true; } if (isSwipingX) { e.preventDefault(); trackX = dx; sliderTrack.style.transform = `translateX(${trackX}px)`; } else if (isSwipingY) { e.preventDefault(); trackY = dy; const pullScale = Math.max(0.75, 1 - (trackY / window.innerHeight)); sliderTrack.style.transform = `translateY(${trackY}px) scale(${pullScale})`; photoStage.style.backgroundColor = `rgba(0,0,0,${Math.max(0, 1 - (trackY / 300))})`; document.getElementById('mobile-lightbox-ui').style.opacity = '0'; document.querySelector('.stage-top-bar').style.opacity = '0'; } }
-    }, { passive: false });
+            const photos = dbData[albumName] || [];
+            photos.forEach(photo => {
+                const card = createCard(photo.full, photo.filename, photo.thumb);
+                card.onclick = (e) => handleCardClick(e, card, photo.full, () => openLightbox(photo.full));
+                contentGrid.appendChild(card);
+            });
+        }
 
-    mainPhotoOverlay.addEventListener('touchend', (e) => {
-      const snapTransition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-      if (isPinching) { if (e.touches.length < 2) { isPinching = false; mainImg.style.transition = snapTransition; if (currentScale < 1) { currentScale = 1; panX = 0; panY = 0; mainImg.style.transform = `translate(0,0) scale(1)`; } } } 
-      else if (isPanning) { isPanning = false; } 
-      else if (isSwipingX) { isSwipingX = false; sliderTrack.style.transition = snapTransition; if (trackX > 70) { sliderTrack.style.transform = `translateX(100vw)`; setTimeout(() => { const nextIndex = (currentPhotoIndex - 1 + currentAlbumPhotos.length) % currentAlbumPhotos.length; navigateTo(currentAlbumTitle, nextIndex); }, 300); } else if (trackX < -70) { sliderTrack.style.transform = `translateX(-100vw)`; setTimeout(() => { const nextIndex = (currentPhotoIndex + 1) % currentAlbumPhotos.length; navigateTo(currentAlbumTitle, nextIndex); }, 300); } else { sliderTrack.style.transform = `translateX(0)`; } trackX = 0; } 
-      else if (isSwipingY) { isSwipingY = false; sliderTrack.style.transition = snapTransition; if (trackY > 120) { navigateTo(currentAlbumTitle); } else { sliderTrack.style.transform = `translate(0,0) scale(1)`; photoStage.style.backgroundColor = ''; if (!isMobileUIHidden) { document.getElementById('mobile-lightbox-ui').style.opacity = '1'; document.querySelector('.stage-top-bar').style.opacity = '1'; } } trackY = 0; }
-    });
+        function createCard(id, title, imgUrl) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.id = id;
+            card.innerHTML = `
+                <img src="${imgUrl}" alt="${title}">
+                <p class="card-title">${title}</p>
+                <div class="checkbox-container"></div>
+            `;
+            return card;
+        }
 
-    // 點擊事件也綁定在護蓋上，但實現放大功能
-    mainPhotoOverlay.addEventListener('click', (e) => {
-      if (window.innerWidth > 600) { isDesktopZoomed = !isDesktopZoomed; if (isDesktopZoomed) { mainImg.classList.add('zoomed'); photoStage.classList.add('immersive-zoom'); const rect = photoStage.getBoundingClientRect(); mainImg.style.transformOrigin = `${(e.clientX - rect.left) / rect.width * 100}% ${(e.clientY - rect.top) / rect.height * 100}%`; } else { mainImg.classList.remove('zoomed'); photoStage.classList.remove('immersive-zoom'); mainImg.style.transformOrigin = 'center center'; } } 
-      else { isMobileUIHidden = !isMobileUIHidden; document.getElementById('mobile-lightbox-ui').style.opacity = isMobileUIHidden ? '0' : '1'; document.querySelector('.stage-top-bar').style.opacity = isMobileUIHidden ? '0' : '1'; }
-    });
+        // ================= 3. 互動邏輯：點擊與多選 =================
+        function handleCardClick(e, cardElement, itemId, defaultAction) {
+            if (isSelectMode) {
+                e.preventDefault();
+                if (selectedItems.has(itemId)) {
+                    selectedItems.delete(itemId);
+                    cardElement.classList.remove('selected');
+                } else {
+                    selectedItems.add(itemId);
+                    cardElement.classList.add('selected');
+                }
+                updateActionBar();
+            } else { defaultAction(); }
+        }
 
-    mainPhotoOverlay.addEventListener('mousemove', (e) => { if (window.innerWidth <= 600 || !isDesktopZoomed) return; const rect = photoStage.getBoundingClientRect(); mainImg.style.transformOrigin = `${(e.clientX - rect.left) / rect.width * 100}% ${(e.clientY - rect.top) / rect.height * 100}%`; });
+        toggleSelectBtn.onclick = () => {
+            isSelectMode = !isSelectMode;
+            if (isSelectMode) {
+                contentGrid.classList.add('select-mode');
+                toggleSelectBtn.textContent = '取消選取';
+                toggleSelectBtn.classList.replace('btn-secondary', 'btn-primary');
+            } else { exitSelectMode(); }
+        };
 
-    // --- 管理功能 API 呼叫 (保留所有刪除功能) ---
-    async function deleteCurrentAlbum() {
-        if (!confirm(`確定要永久刪除相簿「${currentAlbumTitle}」及裡面的所有照片嗎？`)) return;
-        try {
-            const res = await fetch('/api/album', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: currentAlbumTitle }) });
-            if (res.ok) { showToast('🗑️ 相簿已刪除'); await fetchDatabase(); navigateTo(''); } 
-            else { showToast('刪除失敗'); }
-        } catch(e) { showToast('❌ 無法連線伺服器'); }
-    }
-    async function deleteCurrentPhoto() { if (!confirm('確定要永久刪除這張照片嗎？')) return; await executeDeletePhoto(currentAlbumPhotos[currentPhotoIndex].full); }
-    async function deleteSpecificPhoto(photoUrl) { if (!confirm('確定要永久刪除這張照片嗎？')) return; await executeDeletePhoto(photoUrl); }
-    async function executeDeletePhoto(photoUrl) {
-        try {
-            const res = await fetch('/api/photo', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: currentAlbumTitle, photoUrl: photoUrl }) });
-            if (res.ok) { showToast('🗑️ 照片已永久刪除'); closeBottomSheet(); await fetchDatabase(); if (albumsData[currentAlbumTitle] && albumsData[currentAlbumTitle].length > 0) { executeOpenAlbum(currentAlbumTitle); } else { navigateTo(''); } } 
-            else { showToast('刪除失敗'); }
-        } catch(e) { showToast('❌ 無法連線伺服器'); }
-    }
+        function exitSelectMode() {
+            isSelectMode = false;
+            selectedItems.clear();
+            contentGrid.classList.remove('select-mode');
+            toggleSelectBtn.textContent = '選取';
+            toggleSelectBtn.classList.replace('btn-primary', 'btn-secondary');
+            document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+            updateActionBar();
+        }
 
-    function openNewAlbumModal() { document.getElementById('new-album-modal').classList.add('active'); }
-    function closeNewAlbumModal() { document.getElementById('new-album-modal').classList.remove('active'); document.getElementById('new-album-input').value = ''; }
-    
-    async function createNewAlbum() {
-      const val = document.getElementById('new-album-input').value.trim(); if(!val) return showToast('請輸入名稱');
-      try { const res = await fetch('/api/albums', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: val }) }); if (res.ok) { closeNewAlbumModal(); showToast('✅ 相簿已建立'); await fetchDatabase(); } else { const data = await res.json(); showToast(data.error); } } 
-      catch (err) { showToast('❌ 連線失敗'); }
-    }
-    
-    function openUploadModal() { const sel = document.getElementById('target-album-select'); sel.innerHTML = ''; Object.keys(albumsData).forEach(k => sel.innerHTML += `<option value="${k}" ${k===currentAlbumTitle?'selected':''}>${k}</option>`); document.getElementById('upload-modal').classList.add('active'); }
-    function closeUploadModal() { document.getElementById('upload-modal').classList.remove('active'); document.getElementById('preview-list').innerHTML=''; selectedFiles = []; document.getElementById('start-upload-btn').style.display='none'; document.getElementById('upload-progress-wrapper').style.display='none'; document.getElementById('upload-count-text').style.display='none'; }
-    
-    // 效能優化版預覽逻辑
-    document.getElementById('file-input').onchange = (e) => {
-      const list = document.getElementById('preview-list'); const countText = document.getElementById('upload-count-text'); list.innerHTML = ''; selectedFiles = Array.from(e.target.files);
-      if (selectedFiles.length > 0) { countText.style.display = 'block'; countText.innerText = `已選擇 ${selectedFiles.length} 張相片`; } else { countText.style.display = 'none'; }
-      const fragment = document.createDocumentFragment(); const maxPreview = 30; selectedFiles.slice(0, maxPreview).forEach(f => { const div = document.createElement('div'); div.className = 'preview-item'; const objUrl = URL.createObjectURL(f); div.innerHTML = `<img src="${objUrl}" onload="URL.revokeObjectURL(this.src)">`; fragment.appendChild(div); });
-      if (selectedFiles.length > maxPreview) { const moreDiv = document.createElement('div'); moreDiv.className = 'preview-item'; moreDiv.style.display = 'flex'; moreDiv.style.alignItems = 'center'; moreDiv.style.justifyContent = 'center'; moreDiv.style.background = '#f0f0f0'; moreDiv.style.color = '#888'; moreDiv.style.fontWeight = 'bold'; moreDiv.innerText = `+${selectedFiles.length - maxPreview}`; fragment.appendChild(moreDiv); }
-      list.appendChild(fragment); document.getElementById('start-upload-btn').style.display = 'block';
-    };
+        function updateActionBar() {
+            selectCount.textContent = `已選取 ${selectedItems.size} 項`;
+            if (selectedItems.size > 0) actionBar.classList.add('show');
+            else actionBar.classList.remove('show');
+        }
 
-    const dropZone = document.getElementById('drop-zone');
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = '#f8fbff'; });
-    dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.background = 'transparent'; });
-    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.style.background = 'transparent'; document.getElementById('file-input').files = e.dataTransfer.files; document.getElementById('file-input').dispatchEvent(new Event('change')); });
+        // ================= 4. API 連動 =================
+        document.getElementById('saveRenameBtn').onclick = async () => {
+            const newName = document.getElementById('renameInput').value.trim();
+            if (newName && newName !== currentAlbum) {
+                showLoading(true);
+                const res = await fetch('/api/album/rename', {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ oldName: currentAlbum, newName: newName })
+                });
+                if (res.ok) { currentAlbum = newName; await loadData(); } 
+                else { alert('改名失敗，名稱可能重複了！'); showLoading(false); }
+            }
+            document.getElementById('cancelRenameBtn').click();
+        };
 
-    // 真實進度條上傳邏輯
-    function startRealUpload() {
-      const targetAlbum = document.getElementById('target-album-select').value; if (selectedFiles.length === 0) return showToast('請先選擇相片');
-      const uploadBtn = document.getElementById('start-upload-btn'); const progressWrapper = document.getElementById('upload-progress-wrapper'); const progressBar = document.getElementById('upload-progress-bar'); const progressText = document.getElementById('upload-progress-text');
-      uploadBtn.innerText = '上傳中...'; uploadBtn.disabled = true; progressWrapper.style.display = 'block'; progressBar.style.width = '0%'; progressText.innerText = '正在準備上傳... 0%';
-      const formData = new FormData(); formData.append('album', targetAlbum); selectedFiles.forEach(file => formData.append('photos', file));
-      const xhr = new XMLHttpRequest(); xhr.open('POST', '/api/upload', true);
-      xhr.upload.onprogress = function(e) { if (e.lengthComputable) { const percentComplete = Math.round((e.loaded / e.total) * 100); progressBar.style.width = percentComplete + '%'; progressText.innerText = `上傳中... ${percentComplete}%`; } };
-      xhr.onload = async function() { if (xhr.status === 200) { progressBar.style.width = '100%'; progressText.innerText = '處理完成！'; showToast('✅ 批次上傳成功！'); closeUploadModal(); await fetchDatabase(); if(currentAlbumTitle === targetAlbum) executeOpenAlbum(targetAlbum); } else { showToast('❌ 上傳失敗'); resetUI(); } };
-      xhr.onerror = function() { showToast('❌ 伺服器連線失敗'); resetUI(); };
-      xhr.send(formData);
-      function resetUI() { uploadBtn.innerText = '開始上傳'; uploadBtn.disabled = false; progressWrapper.style.display = 'none'; }
-    }
+        document.getElementById('batchDeleteBtn').onclick = async () => {
+            if (!confirm(`確定要刪除這 ${selectedItems.size} 個項目嗎？這動作無法復原喔！`)) return;
+            showLoading(true);
+            const itemsArray = Array.from(selectedItems);
+            let endpoint = currentAlbum === null ? '/api/albums/batch-delete' : '/api/photos/batch-delete';
+            let payload = currentAlbum === null ? { albumNames: itemsArray } : { albumName: currentAlbum, photoUrls: itemsArray };
 
-    // 通用功能
-    function showToast(msg) { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className='toast'; t.innerText=msg; c.appendChild(t); setTimeout(()=>t.classList.add('show'),10); setTimeout(()=>{t.classList.remove('show'); setTimeout(()=>t.remove(),300)}, 3000); }
-    function openBottomSheet() { document.getElementById('bottom-sheet').classList.add('active'); document.getElementById('bottom-sheet-overlay').style.display='block'; }
-    function closeBottomSheet() { document.getElementById('bottom-sheet').classList.remove('active'); document.getElementById('bottom-sheet-overlay').style.display='none'; }
-    function handleDownload() { showToast('🔒 原圖已受技術保護，不開放下載'); closeBottomSheet(); }
-    function copyLinkToClipboard() { navigator.clipboard.writeText(window.location.href); showToast('🔗 連結已複製'); }
-    function toggleNativeFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-    
-    document.addEventListener('keydown', (e) => {
-      if (!document.getElementById('photo-detail-view').classList.contains('active')) return;
-      if (e.key === 'Escape') { if (isDesktopZoomed || currentScale > 1) { mainImg.classList.remove('zoomed'); photoStage.classList.remove('immersive-zoom'); mainImg.style.transformOrigin = 'center center'; isDesktopZoomed = false; } else { navigateTo(currentAlbumTitle); } }
-      if (e.key === 'ArrowRight') triggerSlideChange(1); if (e.key === 'ArrowLeft') triggerSlideChange(-1);
-    });
+            const res = await fetch(endpoint, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) { await loadData(); } else { alert('刪除發生錯誤！'); showLoading(false); }
+        };
 
-    fetchDatabase();
-  </script>
+        uploadBtn.onclick = () => fileInput.click();
+        fileInput.onchange = async () => {
+            if (!fileInput.files.length) return;
+            showLoading(true);
+            const formData = new FormData();
+            formData.append('album', currentAlbum);
+            for (let i = 0; i < fileInput.files.length; i++) { formData.append('photos', fileInput.files[i]); }
+            try { await fetch('/api/upload', { method: 'POST', body: formData }); await loadData(); } 
+            catch (err) { alert('上傳失敗'); showLoading(false); }
+            fileInput.value = ''; 
+        };
+
+        // 建立新相簿 API (已修復補回)
+        document.getElementById('newAlbumBtn').onclick = async () => {
+            const albumName = prompt("請輸入新相簿名稱：");
+            if (albumName) {
+                showLoading(true);
+                await fetch('/api/albums', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ albumName })
+                });
+                await loadData();
+            }
+        };
+
+        // ================= 5. 輔助功能與手勢滑動 =================
+        let currentPhotoIndex = 0;
+        let currentPhotosList = [];
+
+        function openLightbox(imgUrl) {
+            currentPhotosList = dbData[currentAlbum] || [];
+            currentPhotoIndex = currentPhotosList.findIndex(p => p.full === imgUrl);
+            document.getElementById('lightboxImg').src = imgUrl;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+        function showLoading(show) { loadingOverlay.style.display = show ? 'flex' : 'none'; }
+
+        // 手機觸控滑動監聽
+        let touchstartX = 0; let touchendX = 0;
+        const lightboxElement = document.getElementById('lightbox');
+
+        lightboxElement.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
+        lightboxElement.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); });
+
+        function handleSwipe() {
+            const swipeDistance = touchendX - touchstartX;
+            if (swipeDistance < -50 && currentPhotoIndex < currentPhotosList.length - 1) {
+                openLightbox(currentPhotosList[currentPhotoIndex + 1].full);
+            }
+            if (swipeDistance > 50 && currentPhotoIndex > 0) {
+                openLightbox(currentPhotosList[currentPhotoIndex - 1].full);
+            }
+        }
+
+        // UI 狀態切換
+        editNameBtn.onclick = () => {
+            headerTitle.style.display = 'none'; editNameBtn.style.display = 'none';
+            renameContainer.style.display = 'flex'; document.getElementById('renameInput').value = currentAlbum;
+        };
+        document.getElementById('cancelRenameBtn').onclick = () => {
+            renameContainer.style.display = 'none'; headerTitle.style.display = 'block'; editNameBtn.style.display = 'block';
+        };
+        backBtn.onclick = renderAlbums;
+
+        // 啟動！
+        loadData();
+    </script>
 </body>
 </html>
