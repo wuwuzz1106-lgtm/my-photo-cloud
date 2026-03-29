@@ -186,8 +186,7 @@ app.delete('/api/album', async (req, res) => {
     }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 全雲端旗艦相簿伺服器已啟動！`);
-    console.log(`👉 請打開 http://localhost:${PORT}`);
+    console.log(`🚀 雲端伺服器已啟動在 port ${PORT}`);
 });

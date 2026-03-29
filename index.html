@@ -352,7 +352,7 @@
 
     async function fetchDatabase() {
         try {
-            const response = await fetch('http://localhost:3000/api/data');
+            const response = await fetch('/api/data');
             albumsData = await response.json();
             handleHashChange(); 
         } catch (error) {
@@ -515,7 +515,7 @@
     async function deleteCurrentAlbum() {
         if (!confirm(`確定要永久刪除相簿「${currentAlbumTitle}」及裡面的所有照片嗎？`)) return;
         try {
-            const res = await fetch('http://localhost:3000/api/album', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: currentAlbumTitle }) });
+            const res = await fetch('/api/album', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: currentAlbumTitle }) });
             if (res.ok) { showToast('🗑️ 相簿已刪除'); await fetchDatabase(); navigateTo(''); } 
             else { showToast('刪除失敗'); }
         } catch(e) { showToast('❌ 無法連線伺服器'); }
@@ -524,7 +524,7 @@
     async function deleteSpecificPhoto(photoUrl) { if (!confirm('確定要永久刪除這張照片嗎？')) return; await executeDeletePhoto(photoUrl); }
     async function executeDeletePhoto(photoUrl) {
         try {
-            const res = await fetch('http://localhost:3000/api/photo', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: currentAlbumTitle, photoUrl: photoUrl }) });
+            const res = await fetch('/api/photo', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: currentAlbumTitle, photoUrl: photoUrl }) });
             if (res.ok) { showToast('🗑️ 照片已永久刪除'); closeBottomSheet(); await fetchDatabase(); if (albumsData[currentAlbumTitle] && albumsData[currentAlbumTitle].length > 0) { executeOpenAlbum(currentAlbumTitle); } else { navigateTo(''); } } 
             else { showToast('刪除失敗'); }
         } catch(e) { showToast('❌ 無法連線伺服器'); }
@@ -535,7 +535,7 @@
     
     async function createNewAlbum() {
       const val = document.getElementById('new-album-input').value.trim(); if(!val) return showToast('請輸入名稱');
-      try { const res = await fetch('http://localhost:3000/api/albums', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: val }) }); if (res.ok) { closeNewAlbumModal(); showToast('✅ 相簿已建立'); await fetchDatabase(); } else { const data = await res.json(); showToast(data.error); } } 
+      try { const res = await fetch('/api/albums', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ albumName: val }) }); if (res.ok) { closeNewAlbumModal(); showToast('✅ 相簿已建立'); await fetchDatabase(); } else { const data = await res.json(); showToast(data.error); } } 
       catch (err) { showToast('❌ 連線失敗'); }
     }
     
@@ -562,7 +562,7 @@
       const uploadBtn = document.getElementById('start-upload-btn'); const progressWrapper = document.getElementById('upload-progress-wrapper'); const progressBar = document.getElementById('upload-progress-bar'); const progressText = document.getElementById('upload-progress-text');
       uploadBtn.innerText = '上傳中...'; uploadBtn.disabled = true; progressWrapper.style.display = 'block'; progressBar.style.width = '0%'; progressText.innerText = '正在準備上傳... 0%';
       const formData = new FormData(); formData.append('album', targetAlbum); selectedFiles.forEach(file => formData.append('photos', file));
-      const xhr = new XMLHttpRequest(); xhr.open('POST', 'http://localhost:3000/api/upload', true);
+      const xhr = new XMLHttpRequest(); xhr.open('POST', '/api/upload', true);
       xhr.upload.onprogress = function(e) { if (e.lengthComputable) { const percentComplete = Math.round((e.loaded / e.total) * 100); progressBar.style.width = percentComplete + '%'; progressText.innerText = `上傳中... ${percentComplete}%`; } };
       xhr.onload = async function() { if (xhr.status === 200) { progressBar.style.width = '100%'; progressText.innerText = '處理完成！'; showToast('✅ 批次上傳成功！'); closeUploadModal(); await fetchDatabase(); if(currentAlbumTitle === targetAlbum) executeOpenAlbum(targetAlbum); } else { showToast('❌ 上傳失敗'); resetUI(); } };
       xhr.onerror = function() { showToast('❌ 伺服器連線失敗'); resetUI(); };
