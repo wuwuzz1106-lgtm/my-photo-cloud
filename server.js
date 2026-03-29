@@ -17,11 +17,10 @@ app.use(express.json());
 // ========================================================
 // 🛑 請在這裡補上你的 Cloudinary 金鑰 (保留單引號)
 cloudinary.config({ 
-  cloud_name: 'dzcncf1vc', 
-  api_key: '114487192124753', 
-  api_secret: 'Cq7f40goyiazXSGcYLp4EFNvRIw' 
+  cloud_name: process.env.CLOUD_NAME, 
+  api_key: process.env.API_KEY, 
+  api_secret: process.env.API_SECRET 
 });
-
 
 // ✅ 你的 MongoDB 專屬連線字串 (加上了資料庫名稱 myPhotoCloud)
 const MONGODB_URI = 'mongodb://wuwuzz1106_user:h5aOHmajgRJ23xwb@ac-nzd1oia-shard-00-00.q4ya0zb.mongodb.net:27017,ac-nzd1oia-shard-00-01.q4ya0zb.mongodb.net:27017,ac-nzd1oia-shard-00-02.q4ya0zb.mongodb.net:27017/myPhotoCloud?ssl=true&replicaSet=atlas-8ik85g-shard-0&authSource=admin&appName=wuzzw';
