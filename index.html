@@ -209,7 +209,7 @@
   @media (min-width: 601px) { .mobile-lightbox-ui { display: none; } }
 
   /* =========================================
-     🌟 新增的旗艦功能 CSS (多選、改名、讀取遮罩)
+     🌟 新增的旗艦功能 CSS (多選、改名、頂端進度條)
      ========================================= */
   .checkbox-container { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; background: rgba(255,255,255,0.9); border: 2px solid #ccc; border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 20; transition: 0.2s; }
   .select-mode .checkbox-container { display: flex; }
@@ -228,13 +228,13 @@
   .rename-container { display: none; align-items: center; gap: 10px; justify-content: center; margin-bottom: 12px; }
   .rename-container input { padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 24px; font-weight: bold; width: 250px; text-align: center; }
   
-  /* 載入遮罩 */
-  #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 400000; justify-content: center; align-items: center; font-size: 18px; font-weight: bold; color: #0063dc; backdrop-filter: blur(5px); }
+  /* 🌟 頂部極簡進度條 */
+  #top-progress-bar { position: fixed; top: 0; left: 0; width: 0%; height: 3px; background-color: #0063dc; z-index: 999999; transition: width 0.3s ease, opacity 0.3s ease; opacity: 0; pointer-events: none; box-shadow: 0 0 10px #0063dc, 0 0 5px #0063dc; }
 </style>
 </head>
 <body onkeydown="handleKeyPress(event)">
 
-  <div id="loadingOverlay">系統處理中，請稍候... ⏳</div>
+  <div id="top-progress-bar"></div>
   <div id="toast-container"></div>
 
   <div id="album-view" class="view active">
@@ -409,7 +409,7 @@
     document.addEventListener('contextmenu', function(event) { if(event.target.tagName === 'IMG') { event.preventDefault(); } });
 
     // 🌟 全域狀態
-    let albumsData = {}; // 改為空物件，等待真實資料載入
+    let albumsData = {}; 
     let currentAlbumTitle = '';
     let currentAlbumPhotos = [];
     let currentPhotoIndex = 0;
@@ -417,7 +417,22 @@
     let isSelectMode = false;
     let selectedItems = new Set();
 
-    function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+    // 🌟 頂部進度條引擎
+    let progressInterval;
+    function showLoading(show) {
+        const bar = document.getElementById('top-progress-bar');
+        if (show) {
+            bar.style.opacity = '1'; bar.style.width = '0%';
+            let width = 0; clearInterval(progressInterval);
+            progressInterval = setInterval(() => {
+                if (width < 85) { width += Math.random() * 5 + 2; bar.style.width = width + '%'; }
+            }, 200);
+        } else {
+            clearInterval(progressInterval); bar.style.width = '100%';
+            setTimeout(() => { bar.style.opacity = '0'; setTimeout(() => bar.style.width = '0%', 300); }, 400);
+        }
+    }
+
     function showToast(message) {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -433,7 +448,7 @@
         try {
             const res = await fetch('/api/data');
             albumsData = await res.json();
-            handleHashChange(); // 資料回來後，重新根據網址渲染畫面
+            handleHashChange(); 
         } catch (err) { showToast('讀取雲端資料庫失敗'); }
         showLoading(false);
     }
@@ -447,7 +462,7 @@
 
     function handleHashChange() {
       stopSlideshow();
-      exitSelectMode(); // 切換頁面時強制關閉選取模式
+      exitSelectMode(); 
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       const album = params.get('album');
@@ -766,7 +781,7 @@
           await fetch('/api/upload', { method: 'POST', body: formData });
           showToast('✅ 上傳成功');
           closeUploadModal();
-          await loadData(); // 重新讀取雲端資料
+          await loadData(); 
       } catch (err) { showToast('上傳失敗'); showLoading(false); }
     }
 
