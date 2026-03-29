@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/photoswipe.min.css">
 
     <style>
-        /* ================= 基礎視覺 (保留原本質感) ================= */
+        /* ================= 基礎視覺 ================= */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f5f5f7; color: #1d1d1f; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea; }
         .header h1 { margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
@@ -18,34 +18,31 @@
         .btn-secondary { background: #e5e5ea; color: #1d1d1f; } .btn-secondary:hover { background: #d1d1d6; }
         .btn-danger { background: #ff3b30; color: white; }
         
-        /* 網格與卡片 (找回原本設計) */
+        /* ================= 網格與卡片 ================= */
         .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; padding: 20px; }
         .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; position: relative; transition: transform 0.2s; aspect-ratio: 1; }
         .card:hover { transform: scale(1.02); }
         .card img { width: 100%; height: 100%; object-fit: cover; transition: 0.2s; }
         .card-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; padding: 8px; margin: 0; font-size: 14px; text-align: center; }
 
-        /* 🛑 終極下載保護：防止長按 */
-        .grid-container img { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; pointer-events: none; }
-        .card-title { pointer-events: none; }
+        /* 🛑 終極下載保護：防止長按，但保留點擊功能！ */
+        .grid-container img { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
 
-        /* ================= 多選模式 UI (新功能保留) ================= */
+        /* ================= 多選模式 UI ================= */
         .checkbox-container { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; background: rgba(255,255,255,0.8); border: 2px solid #ccc; border-radius: 50%; display: none; align-items: center; justify-content: center; z-index: 10; transition: 0.2s; }
         .select-mode .checkbox-container { display: flex; }
         .card.selected .checkbox-container { background: #007aff; border-color: #007aff; }
         .card.selected .checkbox-container::after { content: '✓'; color: white; font-weight: bold; }
         .card.selected img { opacity: 0.7; transform: scale(0.9); border-radius: 12px; }
 
-        /* 浮動操作列 */
+        /* ================= 浮動操作列 ================= */
         .action-bar { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #1d1d1f; color: white; padding: 12px 24px; border-radius: 30px; display: flex; gap: 20px; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); transition: bottom 0.3s ease; z-index: 1000; }
         .action-bar.show { bottom: 30px; }
         
-        /* 改名 UI */
+        /* 改名 UI 與其他 */
         .rename-container { display: none; align-items: center; gap: 10px; }
         .rename-container input { padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 20px; font-weight: bold; width: 200px; }
-
         #fileInput { display: none; }
-        
         #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 3000; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; }
     </style>
 </head>
@@ -79,20 +76,21 @@
         <button id="batchDeleteBtn" class="btn-danger">刪除選取項目</button>
     </div>
 
-    <script type="module">
-        // ================= 引入 PhotoSwipe 專業絲滑引擎 =================
-        import PhotoSwipeLightbox from 'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/photoswipe-lightbox.esm.min.js';
-        const lightbox = new PhotoSwipeLightbox({
-            gallery: '#contentGrid', // 網格就是藝廊
-            children: 'a.photo-item', // 藝廊內的照片項目
-            pswpModule: () => import('https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/photoswipe.esm.min.js')
-        });
-        // 🛑 下載保護：PhotoSwipe 開啟時一樣禁止按右鍵
-        lightbox.on('contentContextMenu', (e) => { e.preventDefault(); });
-        lightbox.init();
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/umd/photoswipe.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/umd/photoswipe-lightbox.umd.min.js"></script>
 
-        // ================= 封印右鍵 =================
+    <script>
+        // 🛑 禁止全站按右鍵
         document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // ================= 初始化 PhotoSwipe =================
+        const lightbox = new PhotoSwipeLightbox({
+            gallery: '#contentGrid',
+            children: 'a.photo-item',
+            pswpModule: PhotoSwipe
+        });
+        lightbox.on('contentContextMenu', (e) => { e.preventDefault(); }); // 燈箱內禁止右鍵
+        lightbox.init();
 
         let dbData = {};
         let currentAlbum = null; 
@@ -111,7 +109,6 @@
         const renameContainer = document.getElementById('renameContainer');
         const loadingOverlay = document.getElementById('loadingOverlay');
 
-        // 取得資料
         async function loadData() {
             showLoading(true);
             try {
@@ -123,7 +120,6 @@
             showLoading(false);
         }
 
-        // ================= 渲染邏輯 (找回你原本喜歡的介面) =================
         function renderAlbums() {
             currentAlbum = null;
             headerTitle.textContent = "我的相簿";
@@ -139,8 +135,24 @@
             Object.keys(dbData).forEach(albumName => {
                 const photos = dbData[albumName];
                 const coverImg = photos.length > 0 ? photos[0].thumb : 'https://via.placeholder.com/400?text=Empty';
-                const card = createCard(albumName, albumName, coverImg, false); // 不是照片，不能開啟絲滑藝廊
-                card.onclick = (e) => handleCardClick(e, card, albumName, () => renderPhotos(albumName));
+                const card = createCard(albumName, albumName, coverImg, false);
+                
+                // 相簿的點擊事件
+                card.onclick = (e) => {
+                    if (isSelectMode) {
+                        e.preventDefault();
+                        if (selectedItems.has(albumName)) {
+                            selectedItems.delete(albumName);
+                            card.classList.remove('selected');
+                        } else {
+                            selectedItems.add(albumName);
+                            card.classList.add('selected');
+                        }
+                        updateActionBar();
+                    } else {
+                        renderPhotos(albumName); // 進入相簿
+                    }
+                };
                 contentGrid.appendChild(card);
             });
         }
@@ -158,14 +170,23 @@
 
             const photos = dbData[albumName] || [];
             photos.forEach(photo => {
-                // 關鍵大改造：把照片卡片包裝成 PhotoSwipe 看得懂的格式 (具有 href, data-pswp-width, data-pswp-height)
                 const card = createCard(photo.full, photo.filename, photo.thumb, true);
-                // 點擊卡片的邏輯
+                
+                // ✅ 關鍵修復：用 stopPropagation() 完美隔離「打勾」與「開大圖」的衝突
                 card.onclick = (e) => {
                     if (isSelectMode) {
-                        handleCardClick(e, card, photo.full, null); // 選取模式下純粹打勾
+                        e.preventDefault();
+                        e.stopPropagation(); // 阻止事件傳遞給 PhotoSwipe 引擎
+                        
+                        if (selectedItems.has(photo.full)) {
+                            selectedItems.delete(photo.full);
+                            card.classList.remove('selected');
+                        } else {
+                            selectedItems.add(photo.full);
+                            card.classList.add('selected');
+                        }
+                        updateActionBar();
                     }
-                    // 非選取模式下，不做任何事，讓內層的 <a> 標籤去觸發 PhotoSwipe 絲滑藝廊
                 };
                 contentGrid.appendChild(card);
             });
@@ -177,16 +198,15 @@
             card.dataset.id = id;
 
             if (isPhoto) {
-                // 如果是照片，內層要用 <a> 標籤包住圖片，並填上大圖尺寸 (這裡暫定一個大尺寸，PhotoSwipe 會自動調整)
+                // 給予一個夠大的預設比例讓引擎算動畫 (2500x2000)
                 card.innerHTML = `
-                    <a href="${imgUrl}" class="photo-item photo-link-hack" data-pswp-width="2500" data-pswp-height="2000" onclick="if(isSelectMode) return false;">
+                    <a href="${imgUrl}" class="photo-item" data-pswp-width="2500" data-pswp-height="2000">
                         <img src="${imgUrl}" alt="${title}">
                         <p class="card-title">${title}</p>
                     </a>
                     <div class="checkbox-container"></div>
                 `;
             } else {
-                // 相簿卡片保持原本格式
                 card.innerHTML = `
                     <img src="${imgUrl}" alt="${title}">
                     <p class="card-title">${title}</p>
@@ -196,27 +216,7 @@
             return card;
         }
 
-        // ================= 互動邏輯：點擊與多選 =================
-        function handleCardClick(e, cardElement, itemId, defaultAction) {
-            if (isSelectMode) {
-                // 如果是選取模式，點擊就是打勾/取消打勾
-                e.stopPropagation(); // 阻止 <a> 標籤跳轉
-                e.preventDefault();
-                if (selectedItems.has(itemId)) {
-                    selectedItems.delete(itemId);
-                    cardElement.classList.remove('selected');
-                } else {
-                    selectedItems.add(itemId);
-                    cardElement.classList.add('selected');
-                }
-                updateActionBar();
-            } else if (defaultAction) {
-                // 正常模式且是相簿，執行進度相簿動作
-                defaultAction();
-            }
-        }
-
-        // 切換多選模式
+        // ================= 互動與 UI 切換 =================
         toggleSelectBtn.onclick = () => {
             isSelectMode = !isSelectMode;
             if (isSelectMode) {
@@ -242,9 +242,7 @@
             else actionBar.classList.remove('show');
         }
 
-        // ================= 真實 API 連動 (全部保留) =================
-        
-        // 改名 API
+        // ================= 真實 API 連動 =================
         document.getElementById('saveRenameBtn').onclick = async () => {
             const newName = document.getElementById('renameInput').value.trim();
             if (newName && newName !== currentAlbum) {
@@ -259,7 +257,6 @@
             document.getElementById('cancelRenameBtn').click();
         };
 
-        // 批次刪除 API
         document.getElementById('batchDeleteBtn').onclick = async () => {
             if (!confirm(`確定要刪除這 ${selectedItems.size} 個項目嗎？這動作無法復原喔！`)) return;
             showLoading(true);
@@ -274,7 +271,6 @@
             if (res.ok) { await loadData(); } else { alert('刪除發生錯誤！'); showLoading(false); }
         };
 
-        // 上傳檔案 API
         uploadBtn.onclick = () => fileInput.click();
         fileInput.onchange = async () => {
             if (!fileInput.files.length) return;
@@ -287,7 +283,6 @@
             fileInput.value = ''; 
         };
 
-        // 建立新相簿 API
         document.getElementById('newAlbumBtn').onclick = async () => {
             const albumName = prompt("請輸入新相簿名稱：");
             if (albumName) {
@@ -300,10 +295,8 @@
             }
         };
 
-        // ================= 輔助功能 =================
         function showLoading(show) { loadingOverlay.style.display = show ? 'flex' : 'none'; }
 
-        // UI 狀態切換
         editNameBtn.onclick = () => {
             headerTitle.style.display = 'none'; editNameBtn.style.display = 'none';
             renameContainer.style.display = 'flex'; document.getElementById('renameInput').value = currentAlbum;
